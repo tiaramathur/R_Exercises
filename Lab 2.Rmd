@@ -1,0 +1,134 @@
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r, include=FALSE}
+library(tidyverse)
+library(ggplot2)
+library(nycflights13)
+```
+
+# Chapter 3 (Pgs. 49-50)
+
+##  Exercise 1
+1. Find all flights that:
+a. Had an arrival delay of two or more hours
+```{r}
+filter(flights, arr_delay >= 120)
+```
+b. Flew to Houston (IAH or HOU)
+```{r}
+filter(flights, dest %in% c("IAH", "HOU"))
+```
+c. Were operated by United, American, or Delta
+```{r}
+filter(flights, carrier %in% c("UA", "AA", "DA"))
+```
+d. Departed in summer (July, August, and September)
+```{r}
+filter(flights, month %in% c(7, 8, 9))
+```
+e. Arrived more than two hours late, but didn't leave late
+```{r}
+filter(flights, arr_delay > 120, dep_delay < 1)
+```
+f. Were delayed by at least an hour, but made up over 30
+minutes in flight
+```{r}
+filter(flights, dep_delay >= 60, air_time >= 30)
+```
+g. Departed between midnight and 6 a.m. (inclusive)
+```{r}
+filter(flights, dep_time == 2400 | dep_time <= 600)
+```
+
+##  Exercise 2
+2. Another useful dplyr filtering helper is between(). What does it do? Can you use it to simplify the code needed to answer the previous challenges?
+
+between() checks if the first argument is greater than/equal to the second argument and less than/equal to the third argument. This can simplify code that used multiple inequalities or where several continuous possible values of a variable were listed out individually. For example, question 1.d can be simplified to:
+```{r}
+filter(flights, between(month, 7, 9))
+```
+
+##  Exercise 3
+3. How many flights have a missing dep_time? What other variables are missing? What might these rows represent?
+By doing:
+```{r}
+summary(flights)
+```
+We can tell that there are 8255 flights with an unknown dep_time. Other missing variables include 8255 missing values for dep_delay, 8713 for arr_time, and 9430 for arr_delay and air_time. These could represent flights where data was not recorded or lost, flights that were rerouted, or flights that never arrived/departed.
+
+# Chapter 3 (Pg. 51)
+
+##  Exercise 2
+2. Sort flights to find the most delayed flights. Find the flights that left earliest.
+```{r}
+arrange(flights, desc(dep_delay), dep_time)
+```
+
+##  Exercise 3
+3. Sort flights to find the fastest flights.
+```{r}
+arrange(flights, air_time)
+```
+
+##  Exercise 4
+4. Which flights traveled the longest? Which traveled the shortest?
+```{r}
+#longest and shortest time:
+arrange(flights, desc(air_time))
+arrange(flights, air_time)
+
+#longest and shortest distance:
+arrange(flights, desc(distance))
+arrange(flights, distance)
+```
+
+# Chapter 3 (Pg. 54)
+
+##  Exercise 2
+2. What happens if you include the name of a variable multiple times in a select() call?
+```{r}
+select(flights, dep_time, dep_time)
+```
+Nothing special happens, the chosen variable is just displayed once.
+
+##  Exercise 4
+4. Does the result of running the following code surprise you? How do the select helpers deal with case by default? How can you change that default?
+```{r}
+select(flights, contains("TIME"))
+```
+This does not surprise me because the select helpers ignore the case by default. This can be changed if you specify to ignore the case, for example:
+```{r}
+select(flights, contains("TIME", ignore.case = FALSE))
+```
+# Chapter 3 (Pg. 58)
+
+##  Exercise 1
+1. Currently dep_time and sched_dep_time are convenient to look at, but hard to compute with because they're not really continuous numbers. Convert them to a more convenient representation of number of minutes since midnight.
+```{r}
+mutate(flights, dep_time = ((dep_time %/% 100) * 60) + (dep_time %% 100), sched_dep_time = ((sched_dep_time %/% 100) * 60) + (sched_dep_time %% 100))
+```
+
+##  Exercise 2
+2. Compare air_time with arr_time - dep_time. What do you expect to see? What do you see? What do you need to do to fix it?
+```{r}
+arrange(flights, air_time)
+arrange(flights, (arr_time - dep_time))
+```
+We would expect to see equal values, but because arr_time is represented differently than dep_time, the calculation is off. To fix this, we can make conversions similar to those in question 1.1:
+```{r}
+mutate(flights, dep_time = ((dep_time %/% 100) * 60) + (dep_time %% 100), sched_dep_time = ((sched_dep_time %/% 100) * 60) + (sched_dep_time %% 100), arr_time = ((arr_time %/% 100) * 60) + (arr_time %% 100), sched_arr_time = ((sched_arr_time %/% 100) * 60) + (sched_arr_time %% 100))
+```
+
+##  Exercise 3
+3. Compare dep_time, sched_dep_time, and dep_delay. How would you expect those three numbers to be related?
+
+Because the time of departure should be once the number of minutes that the flight was delayed has elapsed since the scheduled departure time for any flight, dep_time = sched_dep_time + dep_delay.
+
+##  Exercise 4
+4. Find the 10 most delayed flights using a ranking function. How do you want to handle ties? Carefully read the documentation for min_rank().
+```{r}
+filter(flights, min_rank(desc(dep_delay)) <= 10)
+#if there is a tie, min_rank will give more than 10.
+```
